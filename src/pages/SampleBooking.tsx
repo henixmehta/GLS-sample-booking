@@ -10,7 +10,7 @@ import { Toast, useShop } from '../components/ShopContext'
 import TermsDialog from '../components/TermsDialog'
 import { CATEGORIES, PRODUCTS } from '../data/catalog'
 import { sendOtp, submitInquiry } from '../lib/api'
-import { byId, catById, inr, pimg, rand, softScrollTo, validEmail, validMobile } from '../lib/helpers'
+import { byId, catById, inr, onImgError, pimg, rand, softScrollTo, validEmail, validMobile } from '../lib/helpers'
 
 type FormData_ = Record<string, any>
 function readForm(f: HTMLFormElement): FormData_ {
@@ -75,7 +75,7 @@ function HomeView({ hash }: { hash: string }) {
 								if (location.hash.slice(1) !== cat.id) history.replaceState(history.state, '', '#' + cat.id)
 							}}>
 							<span className='ci'>
-								<img src={pimg(byId(cat.cover))} alt='' />
+								<img src={pimg(byId(cat.cover))} alt='' onError={onImgError(byId(cat.cover))} />
 							</span>
 							<b>{cat.name}</b>
 							<span>
@@ -92,7 +92,7 @@ function HomeView({ hash }: { hash: string }) {
 					{PRODUCTS.filter((p) => p.cat === activeCat).map((p) => (
 						<article className='card' key={p.id}>
 							<button className={`card-media ${p.wide ? 'wide' : ''}`} type='button' aria-label={`Choose options for ${p.name}`} onClick={() => openProduct(p.id)}>
-								<img src={pimg(p)} alt={`${p.name} sample pack`} loading='lazy' />
+								<img src={pimg(p)} alt={`${p.name} sample pack`} loading='lazy' onError={onImgError(p)} />
 							</button>
 							<div className='card-body'>
 								<h3>

@@ -32,45 +32,83 @@ export function softScrollTo(el: HTMLElement, ms = 650) {
 	requestAnimationFrame(step)
 }
 
-/* Package illustration for products without a photo */
-function packSVG(p: Product) {
-	const c = p.color!, t = p.dark ? '#1b1b1b' : '#ffffff', nm = p.short!
+/* Package illustration for products without a photo or as a fallback */
+export function packSVG(p?: Product) {
+	if (!p) return ''
+	const c = p.color || (p.cat === 'creatine' ? '#F2C230' : p.cat === 'whey' ? '#7FB3D5' : p.cat === 'plant' ? '#6BAA3A' : p.cat === 'gainer' ? '#B5763F' : '#8DC63F')
+	const t = p.dark ? '#1b1b1b' : '#ffffff'
+	const nm = p.short || (p.name ? p.name.toUpperCase().slice(0, 14) : 'SAMPLE')
+	const shape = p.shape || (p.cat === 'beverage' ? 'sachet' : p.cat === 'wellness' ? 'bottle' : p.cat === 'creatine' || p.cat === 'amino' ? 'jar' : 'tub')
 	const fs = nm.length > 12 ? 15 : nm.length > 9 ? 18 : 22
 	const label = (y: number) => `<text x="100" y="${y}" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="800" font-size="12" fill="#fff" letter-spacing="1">YOUR LOGO</text>`
 	let s = ''
-	if (p.shape === 'tub') s = `<rect x="48" y="12" width="104" height="30" rx="6" fill="#111"/><rect x="44" y="36" width="112" height="10" rx="3" fill="#222"/><rect x="28" y="44" width="144" height="186" rx="34" fill="#1d1d1d"/><path d="M28 135h144v52c0 24-14 43-34 43H62c-20 0-34-19-34-43z" fill="${c}"/>${label(100)}<text x="100" y="168" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="900" font-style="italic" font-size="${fs}" fill="${t}">${nm}</text>`
-	if (p.shape === 'jar') s = `<rect x="30" y="50" width="140" height="40" rx="8" fill="#111"/><rect x="26" y="86" width="148" height="112" rx="14" fill="#1d1d1d"/><rect x="26" y="146" width="148" height="52" rx="10" fill="${c}"/><rect x="26" y="146" width="148" height="12" fill="${c}"/>${label(118)}<text x="100" y="178" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="900" font-size="${fs - 2}" fill="${t}">${nm}</text>`
-	if (p.shape === 'bottle') s = `<rect x="70" y="16" width="60" height="30" rx="5" fill="#111"/><rect x="62" y="44" width="76" height="12" rx="3" fill="#2a2a2a"/><rect x="44" y="54" width="112" height="170" rx="20" fill="#f4f4f4" stroke="#ddd"/><rect x="44" y="96" width="112" height="96" fill="${c}"/>${label(126)}<text x="100" y="160" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="900" font-size="${Math.min(15, Math.floor(150 / nm.length))}" fill="${t}">${nm}</text>`
-	if (p.shape === 'sachet') s = `<path d="M40 30l8 8 8-8 8 8 8-8 8 8 8-8 8 8 8-8 8 8 8-8 8 8 8-8 8 8 8-8v190H40z" fill="${c}"/><rect x="40" y="150" width="120" height="70" fill="rgba(0,0,0,.18)"/><circle cx="100" cy="185" r="18" fill="rgba(255,255,255,.85)"/><text x="100" y="191" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="800" font-size="14" fill="${c}">5g</text>${label(80)}<text x="100" y="120" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="900" font-size="${Math.min(fs, 14)}" fill="#fff">${nm}</text>`
-	if (p.shape === 'bar') s = `<g transform="rotate(-12 100 120)"><path d="M14 92l6-6 6 6 6-6v68l-6-6-6 6-6-6z" fill="#111"/><rect x="30" y="86" width="140" height="68" fill="#1d1d1d"/><rect x="30" y="128" width="140" height="26" fill="${c}"/><path d="M170 86l6 6 6-6 6 6v68l-6-6-6 6-6-6z" fill="#111"/><text x="100" y="112" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="800" font-size="11" fill="#fff">YOUR LOGO</text><text x="100" y="147" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="900" font-size="14" fill="#1b1b1b">${nm}</text></g>`
-	const vb = ({ jar: '12 40 176 168', bar: '0 52 200 136', sachet: '20 20 160 214' } as Record<string, string>)[p.shape!] || '0 0 200 240'
-	const sh = p.shape === 'tub' || p.shape === 'bottle' ? `<ellipse cx="100" cy="232" rx="70" ry="6" fill="rgba(0,0,0,.12)"/>` : ''
+	if (shape === 'tub') s = `<rect x="48" y="12" width="104" height="30" rx="6" fill="#111"/><rect x="44" y="36" width="112" height="10" rx="3" fill="#222"/><rect x="28" y="44" width="144" height="186" rx="34" fill="#1d1d1d"/><path d="M28 135h144v52c0 24-14 43-34 43H62c-20 0-34-19-34-43z" fill="${c}"/>${label(100)}<text x="100" y="168" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="900" font-style="italic" font-size="${fs}" fill="${t}">${nm}</text>`
+	if (shape === 'jar') s = `<rect x="30" y="50" width="140" height="40" rx="8" fill="#111"/><rect x="26" y="86" width="148" height="112" rx="14" fill="#1d1d1d"/><rect x="26" y="146" width="148" height="52" rx="10" fill="${c}"/><rect x="26" y="146" width="148" height="12" fill="${c}"/>${label(118)}<text x="100" y="178" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="900" font-size="${fs - 2}" fill="${t}">${nm}</text>`
+	if (shape === 'bottle') s = `<rect x="70" y="16" width="60" height="30" rx="5" fill="#111"/><rect x="62" y="44" width="76" height="12" rx="3" fill="#2a2a2a"/><rect x="44" y="54" width="112" height="170" rx="20" fill="#f4f4f4" stroke="#ddd"/><rect x="44" y="96" width="112" height="96" fill="${c}"/>${label(126)}<text x="100" y="160" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="900" font-size="${Math.min(15, Math.floor(150 / nm.length))}" fill="${t}">${nm}</text>`
+	if (shape === 'sachet') s = `<path d="M40 30l8 8 8-8 8 8 8-8 8 8 8-8 8 8 8-8 8 8 8-8 8 8 8-8 8 8 8-8v190H40z" fill="${c}"/><rect x="40" y="150" width="120" height="70" fill="rgba(0,0,0,.18)"/><circle cx="100" cy="185" r="18" fill="rgba(255,255,255,.85)"/><text x="100" y="191" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="800" font-size="14" fill="${c}">5g</text>${label(80)}<text x="100" y="120" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="900" font-size="${Math.min(fs, 14)}" fill="#fff">${nm}</text>`
+	if (shape === 'bar') s = `<g transform="rotate(-12 100 120)"><path d="M14 92l6-6 6 6 6-6v68l-6-6-6 6-6-6z" fill="#111"/><rect x="30" y="86" width="140" height="68" fill="#1d1d1d"/><rect x="30" y="128" width="140" height="26" fill="${c}"/><path d="M170 86l6 6 6-6 6 6v68l-6-6-6 6-6-6z" fill="#111"/><text x="100" y="112" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="800" font-size="11" fill="#fff">YOUR LOGO</text><text x="100" y="147" text-anchor="middle" font-family="Montserrat,Arial,sans-serif" font-weight="900" font-size="14" fill="#1b1b1b">${nm}</text></g>`
+	const vb = ({ jar: '12 40 176 168', bar: '0 52 200 136', sachet: '20 20 160 214' } as Record<string, string>)[shape] || '0 0 200 240'
+	const sh = shape === 'tub' || shape === 'bottle' ? `<ellipse cx="100" cy="232" rx="70" ry="6" fill="rgba(0,0,0,.12)"/>` : ''
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}">${sh}${s}</svg>`
 	return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
 }
 const svgCache: Record<string, string> = {}
-export const pimg = (p: Product) => (p.img ? IMG[p.img] : (svgCache[p.id] ||= packSVG(p)))
+export const pimg = (p?: Product) => (p ? (p.img && IMG[p.img] ? IMG[p.img] : (svgCache[p.id] ||= packSVG(p))) : '')
+
+export const onImgError = (p?: Product) => (e: React.SyntheticEvent<HTMLImageElement>) => {
+	const target = e.currentTarget
+	const fallback = packSVG(p)
+	if (fallback && target.src !== fallback) {
+		target.src = fallback
+	}
+}
 
 /* ============== cart ============== */
 export interface Selection { pid: string; flavour: string; variant: string | null; qty: number }
-export interface KitPart { pid: string; flavour: string; variant: string | null; extra: number }
+export interface KitPart { pid: string; flavour: string; variant: string | null; extra: number; qty?: number }
 export type CartItem = (Selection & { kind?: undefined }) | { kind: 'combo'; qty: 1; parts: KitPart[] }
 
-/* Combo: one of each part is included in COMBO.price; every pack beyond that is charged at the product's own sample price.
-   Must match fg-api controllers/public/gls-sample-booking/sample-booking.service.js. */
-export const comboExtras = (parts: KitPart[]) => parts.reduce((a, x) => a + x.extra * byId(x.pid).price, 0)
-export const comboPrice = (parts: KitPart[]) => COMBO.price + comboExtras(parts)
+/* Tiered combo pricing:
+   1 product: ₹249
+   2 products: ₹450
+   3 products: ₹650
+   4 products: ₹750
+   5 products: ₹999
+   6+ products: ₹999 + (count - 5) * 249 */
+export function comboTierPrice(count: number): number {
+	if (count <= 0) return 0
+	if (count === 1) return 249
+	if (count === 2) return 450
+	if (count === 3) return 650
+	if (count === 4) return 750
+	if (count === 5) return 999
+	return 999 + (count - 5) * 249
+}
+
+export const comboItemCount = (parts: KitPart[]) =>
+	parts.reduce((sum, x) => sum + (x.qty !== undefined ? x.qty : 1 + (x.extra || 0)), 0)
+
+export const comboPrice = (parts: KitPart[]) => comboTierPrice(comboItemCount(parts))
+export const comboExtras = (parts: KitPart[]) => Math.max(0, comboPrice(parts) - COMBO.price)
 export const isCombo = (i: CartItem): i is Extract<CartItem, { kind: 'combo' }> => i.kind === 'combo'
 export const optsTxt = (x: { variant: string | null; flavour: string }) => [x.variant, x.flavour].filter(Boolean).join(', ')
 export const itemPrice = (i: CartItem) => (isCombo(i) ? comboPrice(i.parts) : byId(i.pid).price * i.qty)
-export const itemName = (i: CartItem) => (isCombo(i) ? 'Full Combo Sample Kit' : byId(i.pid).name)
+export const itemName = (i: CartItem) => {
+	if (!isCombo(i)) return byId(i.pid).name
+	const n = comboItemCount(i.parts)
+	return n === 5 ? 'Full Combo Sample Kit (5 samples)' : `Combo Sample Kit (${n} sample${n > 1 ? 's' : ''})`
+}
 export const itemSub = (i: CartItem) =>
 	isCombo(i)
-		? i.parts.map((x) => `${byId(x.pid).name} (${optsTxt(x)}) ×${1 + x.extra}`).join('; ')
+		? i.parts
+				.filter((x) => (x.qty !== undefined ? x.qty > 0 : true))
+				.map((x) => `${byId(x.pid).name} (${optsTxt(x)}) ×${x.qty !== undefined ? x.qty : 1 + (x.extra || 0)}`)
+				.join('; ')
 		: `${[optsTxt(i), byId(i.pid).pack].filter(Boolean).join(', ')} ×${i.qty}`
 export const itemImg = (i: CartItem) => (isCombo(i) ? IMG.lineup : pimg(byId(i.pid)))
 export const itemCount = (i: CartItem) => (isCombo(i) ? 1 : i.qty)
-export const isValidItem = (i: CartItem) => (isCombo(i) ? i.parts.every((x) => byId(x.pid)) : !!byId(i.pid))
+export const isValidItem = (i: CartItem) =>
+	isCombo(i) ? i.parts.filter((x) => (x.qty !== undefined ? x.qty > 0 : true)).every((x) => byId(x.pid)) : !!byId(i.pid)
 
 export function mergeSel(box: CartItem[], sel: Selection): CartItem[] {
 	const ex = box.findIndex((i) => !isCombo(i) && i.pid === sel.pid && i.flavour === sel.flavour && i.variant === sel.variant)

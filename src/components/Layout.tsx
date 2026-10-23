@@ -31,7 +31,7 @@ export function Header() {
 			</div>
 			<button className='offerbar' type='button' onClick={() => setComboOpen(true)}>
 				<span className='wrap'>
-					<b>Combo offer: 5 samples for ₹999</b>
+					<b>Combo offer: 1 for ₹249, 2 for ₹450, 3 for ₹650, 4 for ₹750, 5 for ₹999</b>
 					<span className='ob-items'>Protein, Pre-Workout, Creatine, BCAA &amp; Gainer</span>
 					<span className='ob-ship'>Free shipping</span>
 					<span className='ob-go'>Build your combo ›</span>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { MAX_PER_ITEM, type NutTable } from '../data/catalog'
-import { byId, catById, inr, pimg, type Selection } from '../lib/helpers'
+import { byId, catById, inr, onImgError, pimg, type Selection } from '../lib/helpers'
 import Dialog, { CloseX } from './Dialog'
 import { useShop } from './ShopContext'
 
@@ -63,7 +63,7 @@ export default function ProductDialog() {
 				{p && sel && (
 					<div className='pd'>
 						<div className='pd-img'>
-							<img src={pimg(p)} alt={p.name} />
+							<img src={pimg(p)} alt={p.name} onError={onImgError(p)} />
 						</div>
 						<div>
 							<span className='cat'>

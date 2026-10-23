@@ -1,5 +1,5 @@
 import { FREE_SHIP_MIN, MAX_PER_ITEM } from '../data/catalog'
-import { byId, grandTotalOf, inr, isCombo, itemCount, itemImg, itemName, itemPrice, itemSub, pimg, relatedTo, shipNudge, shippingOf, subtotalOf } from '../lib/helpers'
+import { byId, grandTotalOf, inr, isCombo, itemCount, itemImg, itemName, itemPrice, itemSub, onImgError, pimg, relatedTo, shipNudge, shippingOf, subtotalOf } from '../lib/helpers'
 import Dialog, { CloseX } from './Dialog'
 import { useShop } from './ShopContext'
 
@@ -79,7 +79,7 @@ export default function CartDrawer() {
 						return (
 							<div className='ci-row' key={key}>
 								<button className='ci-img' type='button' aria-label={`Details of ${p.name}`} onClick={() => openProduct(p.id)}>
-									<img src={pimg(p)} alt='' />
+									<img src={pimg(p)} alt='' onError={onImgError(p)} />
 								</button>
 								<div className='ci-main'>
 									<div className='ci-top'>
@@ -154,7 +154,7 @@ export default function CartDrawer() {
 							{related.map((p) => (
 								<div className='rel-card' key={p.id}>
 									<button className='rel-img' type='button' aria-label={`Details of ${p.name}`} onClick={() => openProduct(p.id)}>
-										<img src={pimg(p)} alt='' loading='lazy' />
+										<img src={pimg(p)} alt='' loading='lazy' onError={onImgError(p)} />
 									</button>
 									<b className='rel-name'>{p.name}</b>
 									<span className='rel-meta'>
