@@ -48,6 +48,31 @@ export interface ConfirmedOrder {
 
 /* Invoice PDF link; the server sends it as a download */
 export const invoiceUrl = (token: string) => `${PUBLIC}/gls-sample-booking/invoice?token=${encodeURIComponent(token)}`
+export const invoiceUrlByOrderId = (orderId: string) => `${PUBLIC}/gls-sample-booking/invoice?order_id=${encodeURIComponent(orderId)}`
+
+export interface InvoiceInfo {
+	order_id: string
+	invoice_number?: string
+	customer_name: string
+	amount: number
+	booking_date?: string
+	download_url?: string
+}
+
+export async function lookupInvoice(orderIdOrMobile: string): Promise<InvoiceInfo> {
+	const q = orderIdOrMobile.trim()
+	const digits = q.replace(/\D/g, '')
+	const isMobile = !/[a-zA-Z]/.test(q) && (digits.length === 10 || (digits.length === 12 && digits.startsWith('91')))
+	const param = isMobile ? 'mobile' : 'order_id'
+	const val = isMobile && digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : (isMobile ? digits : q)
+
+	const res = await fetch(`${PUBLIC}/gls-sample-booking/invoice?${param}=${encodeURIComponent(val)}&info=true`, {
+		headers: { Accept: 'application/json' },
+	})
+	const json = await res.json().catch(() => ({}))
+	if (!res.ok) throw new Error(json?.message || 'Invoice not found. Please check your Order ID.')
+	return json?.data
+}
 
 const toPayloadItem = (i: CartItem) =>
 	i.kind === 'combo'

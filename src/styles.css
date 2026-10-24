@@ -230,7 +230,7 @@ main.wrap{min-height:70vh}
 .cat-txt h3{font-size:17px;font-weight:800}
 .cat-txt span{font-size:13px;color:var(--ink-soft);white-space:nowrap}
 .cat-txt .arr{width:30px;height:30px;border-radius:50%;background:var(--lime);color:#fff;display:grid;place-items:center;font-weight:800;flex:none}
-.more{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+.more{display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;margin-top:20px}
 @media (max-width:700px){.more{grid-template-columns:1fr}}
 .more-card{display:flex;flex-direction:column;gap:10px;align-items:flex-start;text-decoration:none;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-left:6px solid var(--amber);border-radius:16px;padding:22px}
 .more-card:hover{border-color:var(--lime);border-left-color:var(--amber)}

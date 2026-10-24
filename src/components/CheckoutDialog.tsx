@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { STATES } from '../data/catalog'
-import { createSampleOrder, invoiceUrl, loadRazorpay, sendOtp, verifySamplePayment, type ConfirmedOrder, type CreatedOrder, type Customer } from '../lib/api'
+import { createSampleOrder, invoiceUrl, invoiceUrlByOrderId, loadRazorpay, sendOtp, verifySamplePayment, type ConfirmedOrder, type CreatedOrder, type Customer } from '../lib/api'
 import { grandTotalOf, inr, itemImg, itemName, itemPrice, itemSub, shipNudge, shippingOf, subtotalOf, validEmail, validMobile, validPin, type CartItem } from '../lib/helpers'
 import { IMG } from '../lib/images'
 import Dialog, { CloseX, Tick } from './Dialog'
@@ -356,16 +356,21 @@ export default function CheckoutDialog() {
 					Paid {inr(o.amount)}
 					{o.payment_method ? ` by ${o.payment_method}` : ''} on {new Date(o.paid_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}. We’ll dispatch within 2–4 working days and share tracking on WhatsApp.
 				</p>
-				{o.invoice_token && (
+				{(o.invoice_token || o.order_id) && (
 					<div className='invoice-box'>
 						<svg viewBox='0 0 24 24' width='28' height='28' aria-hidden='true'>
 							<path d='M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z M14 3v5h5 M9 13h6 M9 17h4' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
 						</svg>
 						<div className='invoice-meta'>
-							<b>Invoice {o.invoice_number}</b>
-							<span>PDF, also attached to your confirmation email</span>
+							<b>Invoice {o.invoice_number || 'Generated'}</b>
+							<span>PDF GST invoice</span>
 						</div>
-						<a className='btn btn-primary invoice-dl' href={invoiceUrl(o.invoice_token)} download>
+						<a
+							className='btn btn-primary invoice-dl'
+							href={o.invoice_token ? invoiceUrl(o.invoice_token) : invoiceUrlByOrderId(o.order_id)}
+							target='_blank'
+							rel='noopener noreferrer'
+							download>
 							Download invoice
 						</a>
 					</div>
