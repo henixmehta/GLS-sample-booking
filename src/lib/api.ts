@@ -1,6 +1,7 @@
 /* fg-api calls. Sample orders are priced and saved by the server; they show up in the
    GLS admin panel under Nutrition > Sample Booking once paid. */
 import type { CartItem } from './helpers'
+import { withVisitorTracking } from '../crm/fg-crm-tracking'
 
 const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname)
 export const API_BASE = (import.meta.env.VITE_API_BASE_URL || (isLocal ? 'http://localhost' : 'https://api.fggroup.in')).replace(/\/+$/, '')
@@ -96,8 +97,9 @@ export const verifySamplePayment = (r: { razorpay_order_id: string; razorpay_pay
 export type InquiryKind = 'pricing' | 'consult'
 export const INQUIRY_SUBJECTS: Record<InquiryKind, string> = { pricing: 'Price your own formula', consult: 'Book an R&D consultation' }
 
-export const submitInquiry = (kind: InquiryKind, d: { name: string; email: string; mobile: string; message: string; details: Record<string, unknown> }) =>
-	post('/contact-inquiry', { ...d, subject: INQUIRY_SUBJECTS[kind], source: `${SOURCE}#${kind}` })
+/* withVisitorTracking adds the visitor id (when the visitor agreed), so the inquiry joins their CRM lead. */
+export const submitInquiry = async (kind: InquiryKind, d: { name: string; email: string; mobile: string; message: string; details: Record<string, unknown> }) =>
+	post('/contact-inquiry', await withVisitorTracking({ ...d, subject: INQUIRY_SUBJECTS[kind], source: `${SOURCE}#${kind}` }))
 
 let rzpScript: Promise<void> | null = null
 export function loadRazorpay() {
