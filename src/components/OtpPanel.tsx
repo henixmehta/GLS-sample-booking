@@ -107,7 +107,7 @@ export default function OtpPanel({
 			</div>
 			{session.otp && (
 				<div className='demo'>
-					Preview mode: your OTP is <b>{session.otp}</b>. Once an SMS service is connected, this box disappears and the code goes to the phone.
+					Preview mode: your OTP is <b>{session.otp}</b>. On the live site the code goes to your phone or e-mail and this box disappears.
 				</div>
 			)}
 			<p className='err' role='alert' style={{ textAlign: 'center', marginTop: 10 }}>

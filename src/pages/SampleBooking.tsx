@@ -396,7 +396,7 @@ function ConsultView() {
 		setErr('')
 		setBusy(true)
 		try {
-			setOtp(await sendOtp(d.mobile))
+			setOtp(await sendOtp(d.mobile, d.email))
 			setData(d)
 			setOtpOpen(true)
 		} catch (ex: any) {
@@ -573,7 +573,7 @@ function ConsultView() {
 						onBack={() => setOtpOpen(false)}
 						onOk={book}
 						onResend={async () => {
-							setOtp(await sendOtp(data.mobile))
+							setOtp(await sendOtp(data.mobile, data.email))
 							toast('New code sent')
 						}}>
 						{(body, foot) => (

@@ -22,8 +22,15 @@ async function post<T = any>(path: string, body: unknown): Promise<T> {
 	return json?.data as T
 }
 
-/* OTP is sent on WhatsApp by the shared inquiry OTP service. In development the API also returns the code. */
-export const sendOtp = (mobile: string) => post<{ verification_id: string; otp?: string }>('/inquiry-otp/send', { mobile, country_code: '+91' })
+/* OTP is sent on WhatsApp first, with SMS and e-mail fallbacks on the server. `email` is optional but
+   lets the server fall back to e-mail when WhatsApp and SMS are both unavailable. In development the
+   API also returns the code. */
+export const sendOtp = (mobile: string, email?: string) =>
+	post<{ verification_id: string; otp?: string; channel?: string }>('/inquiry-otp/send', {
+		mobile,
+		country_code: '+91',
+		...(email ? { email } : {}),
+	})
 export const verifyOtp = (verification_id: string, otp: string) => post('/inquiry-otp/verify', { verification_id, otp })
 
 export interface Customer { name: string; company: string; mobile: string; email: string; addr1: string; addr2: string; city: string; pin: string; state: string; gst: string; terms: boolean }

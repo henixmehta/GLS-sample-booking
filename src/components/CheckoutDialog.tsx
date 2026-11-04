@@ -124,10 +124,11 @@ export default function CheckoutDialog() {
 		const missing = Object.keys(b).filter((k) => b[k]).map((k) => labels[k])
 		if (missing.length) return setDetErr('Add ' + missing.join(', ') + ' to continue.')
 		if (!d.terms) return setDetErr('Tick the box to accept the sample order terms.')
+		if (sending) return // ignore double clicks while a request is already in flight
 		setDetErr('')
 		setSending(true)
 		try {
-			setOtp(await sendOtp(d.mobile))
+			setOtp(await sendOtp(d.mobile, d.email))
 			go(2)
 		} catch (ex: any) {
 			setDetErr(ex.message)
@@ -439,7 +440,7 @@ export default function CheckoutDialog() {
 					onBack={() => go(1)}
 					onOk={() => go(3)}
 					onResend={async () => {
-						setOtp(await sendOtp(cust.mobile))
+						setOtp(await sendOtp(cust.mobile, cust.email))
 						toast('New code sent')
 					}}>
 					{content}
