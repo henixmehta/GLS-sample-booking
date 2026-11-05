@@ -99,10 +99,14 @@ const toPayloadItem = (i: CartItem) => {
 			kind: 'custom',
 			name: i.name,
 			category: i.category,
+			custom_category: i.customCategory,
 			flavour: i.flavour,
 			pack: i.pack,
 			notes: i.notes,
 			attachment: i.attachment,
+			attachments: i.attachments,
+			ingredients_attachment: i.ingredientsAttachment,
+			ingredients_attachments: i.ingredientsAttachments,
 			qty: i.qty,
 		}
 	}

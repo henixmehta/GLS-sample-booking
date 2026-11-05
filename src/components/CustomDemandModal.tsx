@@ -2,7 +2,7 @@ import { useState, useRef, type ChangeEvent, type DragEvent } from 'react'
 import { CATEGORIES } from '../data/catalog'
 import { uploadCustomAttachment } from '../lib/api'
 import { compressImage, formatBytes, type CompressionResult } from '../lib/compressImage'
-import { inr, rand } from '../lib/helpers'
+import { customBeakerSvg, inr, rand } from '../lib/helpers'
 import Dialog, { CloseX } from './Dialog'
 import { useShop } from './ShopContext'
 
@@ -24,38 +24,56 @@ const PACK_SUGGESTIONS = [
 	'250 g Trial Pack',
 ]
 
+interface UploadedPhoto {
+	file: File
+	previewUrl: string
+	originalSize: number
+	compressedSize: number
+}
+
 export default function CustomDemandModal() {
 	const { customModalOpen, setCustomModalOpen, addCustom, toast } = useShop()
 
 	const [name, setName] = useState('')
 	const [category, setCategory] = useState(CATEGORIES[0]?.name || 'Whey Protein')
+	const [customCategoryName, setCustomCategoryName] = useState('')
 	const [flavour, setFlavour] = useState('')
 	const [pack, setPack] = useState('50 g Sample Pouch')
 	const [notes, setNotes] = useState('')
 
-	// Attachment state
-	const [selectedFile, setSelectedFile] = useState<File | null>(null)
-	const [previewUrl, setPreviewUrl] = useState<string>('')
-	const [originalSize, setOriginalSize] = useState<number>(0)
-	const [compressedSize, setCompressedSize] = useState<number>(0)
-	const [isCompressing, setIsCompressing] = useState<boolean>(false)
-	const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
-	const [isDragging, setIsDragging] = useState<boolean>(false)
-	const [err, setErr] = useState<string>('')
+	// Attachment 1: Packaging Reference (Front & Back) - max 2 photos, non-mandatory
+	const [packagingPhotos, setPackagingPhotos] = useState<UploadedPhoto[]>([])
+	const [isCompPackaging, setIsCompPackaging] = useState<boolean>(false)
+	const [isDragPackaging, setIsDragPackaging] = useState<boolean>(false)
+	const packagingInputRef = useRef<HTMLInputElement>(null)
 
-	const fileInputRef = useRef<HTMLInputElement>(null)
+	// Attachment 2: Ingredients / Formulation Reference - max 2 photos, non-mandatory
+	const [ingredientsPhotos, setIngredientsPhotos] = useState<UploadedPhoto[]>([])
+	const [isCompIngredients, setIsCompIngredients] = useState<boolean>(false)
+	const [isDragIngredients, setIsDragIngredients] = useState<boolean>(false)
+	const ingredientsInputRef = useRef<HTMLInputElement>(null)
+
+	const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+	const [err, setErr] = useState<string>('')
 
 	const resetForm = () => {
 		setName('')
 		setCategory(CATEGORIES[0]?.name || 'Whey Protein')
+		setCustomCategoryName('')
 		setFlavour('')
 		setPack('50 g Sample Pouch')
 		setNotes('')
-		setSelectedFile(null)
-		setPreviewUrl('')
-		setOriginalSize(0)
-		setCompressedSize(0)
-		setIsCompressing(false)
+
+		setPackagingPhotos([])
+		setIsCompPackaging(false)
+		setIsDragPackaging(false)
+		if (packagingInputRef.current) packagingInputRef.current.value = ''
+
+		setIngredientsPhotos([])
+		setIsCompIngredients(false)
+		setIsDragIngredients(false)
+		if (ingredientsInputRef.current) ingredientsInputRef.current.value = ''
+
 		setIsSubmitting(false)
 		setErr('')
 	}
@@ -65,45 +83,58 @@ export default function CustomDemandModal() {
 		resetForm()
 	}
 
-	const processFile = async (file: File) => {
-		if (!file) return
-		setIsCompressing(true)
+	const processFiles = async (files: FileList | File[], type: 'pkg' | 'ing') => {
+		if (!files || files.length === 0) return
+		const currentList = type === 'pkg' ? packagingPhotos : ingredientsPhotos
+		const availableSlots = 2 - currentList.length
+		if (availableSlots <= 0) return
+
+		const filesToProcess = Array.from(files).slice(0, availableSlots)
+		if (type === 'pkg') setIsCompPackaging(true)
+		else setIsCompIngredients(true)
 		setErr('')
+
 		try {
-			const res: CompressionResult = await compressImage(file, 1600, 0.82)
-			setSelectedFile(res.file)
-			setPreviewUrl(res.previewUrl)
-			setOriginalSize(res.originalSize)
-			setCompressedSize(res.compressedSize)
-		} catch (e) {
-			console.error('Compression error:', e)
-			setSelectedFile(file)
-			setPreviewUrl(URL.createObjectURL(file))
-			setOriginalSize(file.size)
-			setCompressedSize(file.size)
+			const processed: UploadedPhoto[] = []
+			for (const f of filesToProcess) {
+				try {
+					const res: CompressionResult = await compressImage(f, 1600, 0.82)
+					processed.push({
+						file: res.file,
+						previewUrl: res.previewUrl,
+						originalSize: res.originalSize,
+						compressedSize: res.compressedSize,
+					})
+				} catch (e) {
+					console.error('Compression error:', e)
+					processed.push({
+						file: f,
+						previewUrl: URL.createObjectURL(f),
+						originalSize: f.size,
+						compressedSize: f.size,
+					})
+				}
+			}
+
+			if (type === 'pkg') {
+				setPackagingPhotos((prev) => [...prev, ...processed].slice(0, 2))
+			} else {
+				setIngredientsPhotos((prev) => [...prev, ...processed].slice(0, 2))
+			}
 		} finally {
-			setIsCompressing(false)
+			if (type === 'pkg') setIsCompPackaging(false)
+			else setIsCompIngredients(false)
 		}
 	}
 
-	const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0]
-		if (file) processFile(file)
+	const removePackagingPhoto = (idx: number) => {
+		setPackagingPhotos((prev) => prev.filter((_, i) => i !== idx))
+		if (packagingInputRef.current) packagingInputRef.current.value = ''
 	}
 
-	const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-		e.preventDefault()
-		setIsDragging(false)
-		const file = e.dataTransfer.files?.[0]
-		if (file) processFile(file)
-	}
-
-	const handleRemoveImage = () => {
-		setSelectedFile(null)
-		setPreviewUrl('')
-		setOriginalSize(0)
-		setCompressedSize(0)
-		if (fileInputRef.current) fileInputRef.current.value = ''
+	const removeIngredientsPhoto = (idx: number) => {
+		setIngredientsPhotos((prev) => prev.filter((_, i) => i !== idx))
+		if (ingredientsInputRef.current) ingredientsInputRef.current.value = ''
 	}
 
 	const handleSubmit = async () => {
@@ -113,30 +144,58 @@ export default function CustomDemandModal() {
 			return
 		}
 
+		if (category === 'Other / Innovative Formulation' && !customCategoryName.trim()) {
+			setErr('Please specify your custom category / innovative formulation.')
+			return
+		}
+
 		setIsSubmitting(true)
 		setErr('')
 
 		try {
-			let attachmentUrl = ''
-			if (selectedFile) {
+			// Upload packaging photos (up to 2, if any attached)
+			const pkgUrls: string[] = []
+			for (const p of packagingPhotos) {
 				try {
-					attachmentUrl = await uploadCustomAttachment(selectedFile, selectedFile.name)
+					const url = await uploadCustomAttachment(p.file, p.file.name)
+					if (url) pkgUrls.push(url)
 				} catch (uploadErr: any) {
-					console.warn('Attachment upload failed, proceeding with local reference:', uploadErr)
-					attachmentUrl = previewUrl // fallback preview
+					console.warn('Packaging upload failed, proceeding with local reference:', uploadErr)
+					pkgUrls.push(p.previewUrl)
 				}
 			}
+
+			// Upload ingredients photos (up to 2, if any attached)
+			const ingUrls: string[] = []
+			for (const p of ingredientsPhotos) {
+				try {
+					const url = await uploadCustomAttachment(p.file, p.file.name)
+					if (url) ingUrls.push(url)
+				} catch (uploadErr: any) {
+					console.warn('Ingredients upload failed, proceeding with local reference:', uploadErr)
+					ingUrls.push(p.previewUrl)
+				}
+			}
+
+			const finalCategory = category === 'Other / Innovative Formulation' ? customCategoryName.trim() : category.trim()
 
 			addCustom({
 				kind: 'custom',
 				customId: rand(8),
 				name: cleanName,
-				category: category.trim(),
+				category: finalCategory,
+				customCategory: category === 'Other / Innovative Formulation' ? customCategoryName.trim() : undefined,
 				flavour: flavour.trim() || 'Custom Formulation',
 				pack: pack.trim() || '50 g Sample Pouch',
 				notes: notes.trim(),
-				attachment: attachmentUrl,
-				previewUrl: previewUrl,
+				attachment: pkgUrls[0] || '',
+				attachments: pkgUrls,
+				ingredientsAttachment: ingUrls[0] || '',
+				ingredientsAttachments: ingUrls,
+				previewUrl: packagingPhotos[0]?.previewUrl || ingredientsPhotos[0]?.previewUrl || '',
+				previewUrls: packagingPhotos.map((p) => p.previewUrl),
+				ingredientsPreviewUrl: ingredientsPhotos[0]?.previewUrl || '',
+				ingredientsPreviewUrls: ingredientsPhotos.map((p) => p.previewUrl),
 				price: 249,
 				qty: 1,
 			})
@@ -149,11 +208,6 @@ export default function CustomDemandModal() {
 			setIsSubmitting(false)
 		}
 	}
-
-	const savingsPercent =
-		originalSize > 0 && compressedSize > 0 && originalSize > compressedSize
-			? Math.round(((originalSize - compressedSize) / originalSize) * 100)
-			: 0
 
 	return (
 		<Dialog
@@ -173,15 +227,15 @@ export default function CustomDemandModal() {
 							fontWeight: 800,
 							letterSpacing: '0.06em',
 							textTransform: 'uppercase',
-							color: '#16a34a',
-							background: '#f0fdf4',
-							border: '1px solid #bbf7d0',
+							color: 'var(--lime-deep)',
+							background: 'var(--surface-2)',
+							border: '1px solid var(--line)',
 							padding: '3px 9px',
 							borderRadius: '999px',
 							marginBottom: '4px',
 						}}
 					>
-						✨ Custom Formulation & Demand
+						✨ Custom Formulation &amp; Demand
 					</div>
 					<h3 id='customDemandTitle' style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>
 						Demand a Customised Product Sample
@@ -215,103 +269,334 @@ export default function CustomDemandModal() {
 				)}
 
 				<div style={{ display: 'grid', gap: '16px' }}>
-					{/* Attachment Upload Card */}
-					<div
-						style={{
-							background: 'var(--surface-2)',
-							border: '1.5px dashed ' + (isDragging ? 'var(--lime-deep)' : 'var(--line)'),
-							borderRadius: '14px',
-							padding: '14px 16px',
-							transition: 'all 0.15s ease',
-						}}
-						onDragOver={(e) => {
-							e.preventDefault()
-							setIsDragging(true)
-						}}
-						onDragLeave={() => setIsDragging(false)}
-						onDrop={handleDrop}
-					>
-						<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-							<label style={{ fontSize: '12.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--ink-soft)' }}>
-								Reference Image / Packaging Photo
-							</label>
-							<span style={{ fontSize: '11px', color: 'var(--ink-soft)' }}>Auto-compressed (PNG, JPG, WEBP, etc.)</span>
-						</div>
+					{/* Dual Attachment Sections in the Same Line with Divider (Max 2 photos each, non-mandatory) */}
+					<div className='custom-att-grid'>
+						{/* Left Section: Packaging Front & Back Reference (max 2) */}
+						<div className='custom-att-col'>
+							<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+								<span className='custom-att-badge custom-att-badge-pkg'>
+									📦 Front &amp; Back Reference
+								</span>
+								<span style={{ fontSize: '10px', color: 'var(--ink-soft)' }}>
+									{packagingPhotos.length}/2 photos
+								</span>
+							</div>
+							<div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--ink)' }}>
+								Packaging Reference Photos
+							</div>
+							<div style={{ fontSize: '11px', color: 'var(--ink-soft)', marginTop: '-4px' }}>
+								Attach front &amp; back photos (optional, max 2)
+							</div>
 
-						{previewUrl ? (
-							<div style={{ display: 'flex', alignItems: 'center', gap: '14px', background: '#fff', padding: '10px', borderRadius: '10px', border: '1px solid var(--line)' }}>
-								<div style={{ width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: '#f8fafc', display: 'grid', placeItems: 'center' }}>
-									<img src={previewUrl} alt='Reference preview' style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-								</div>
-								<div style={{ flex: 1, minWidth: 0 }}>
-									<div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-										{selectedFile?.name || 'Uploaded photo'}
-									</div>
-									<div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px', flexWrap: 'wrap' }}>
-										<span style={{ fontSize: '11.5px', color: 'var(--ink-soft)' }}>
-											{formatBytes(originalSize)} → <b>{formatBytes(compressedSize)}</b>
-										</span>
-										{savingsPercent > 0 && (
-											<span style={{ fontSize: '10px', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '4px' }}>
-												-{savingsPercent}% Auto-Compressed
-											</span>
-										)}
-									</div>
-								</div>
-								<button
-									type='button'
-									onClick={handleRemoveImage}
+							{/* Display uploaded packaging photos */}
+							{packagingPhotos.map((p, idx) => (
+								<div
+									key={idx}
 									style={{
-										border: 'none',
-										background: '#fee2e2',
-										color: '#b91c1c',
-										borderRadius: '8px',
-										padding: '6px 12px',
-										fontSize: '12px',
-										fontWeight: 700,
-										cursor: 'pointer',
+										display: 'flex',
+										alignItems: 'center',
+										gap: '8px',
+										background: '#fff',
+										padding: '6px 10px',
+										borderRadius: '10px',
+										border: '1px solid var(--line)',
 									}}
 								>
-									Remove
-								</button>
-							</div>
-						) : (
-							<div
-								onClick={() => fileInputRef.current?.click()}
-								style={{
-									cursor: 'pointer',
-									textAlign: 'center',
-									padding: '16px 12px',
-									background: '#fff',
-									borderRadius: '10px',
-									border: '1px solid var(--line)',
-									display: 'flex',
-									flexDirection: 'column',
-									alignItems: 'center',
-									gap: '6px',
-								}}
-							>
-								<svg width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='var(--lime-deep)' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round'>
-									<rect x='3' y='3' width='18' height='18' rx='2' ry='2' />
-									<circle cx='8.5' cy='8.5' r='1.5' />
-									<polyline points='21 15 16 10 5 21' />
-								</svg>
-								<div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>
-									{isCompressing ? 'Compressing image...' : 'Click or drag reference image here'}
+									<div
+										style={{
+											width: '44px',
+											height: '44px',
+											borderRadius: '6px',
+											overflow: 'hidden',
+											flexShrink: 0,
+											background: '#f8fafc',
+											display: 'grid',
+											placeItems: 'center',
+										}}
+									>
+										<img
+											src={p.previewUrl}
+											alt={`Packaging photo ${idx + 1}`}
+											style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+											onError={(e) => {
+												e.currentTarget.onerror = null
+												e.currentTarget.src = customBeakerSvg
+											}}
+										/>
+									</div>
+									<div style={{ flex: 1, minWidth: 0 }}>
+										<div
+											style={{
+												fontSize: '11.5px',
+												fontWeight: 700,
+												color: 'var(--ink)',
+												whiteSpace: 'nowrap',
+												overflow: 'hidden',
+												textOverflow: 'ellipsis',
+											}}
+										>
+											Photo {idx + 1}: {p.file.name}
+										</div>
+										<div style={{ fontSize: '10px', color: 'var(--ink-soft)' }}>
+											{formatBytes(p.originalSize)} → <b>{formatBytes(p.compressedSize)}</b>
+										</div>
+									</div>
+									<button
+										type='button'
+										onClick={() => removePackagingPhoto(idx)}
+										style={{
+											border: 'none',
+											background: '#fee2e2',
+											color: '#b91c1c',
+											borderRadius: '6px',
+											padding: '4px 8px',
+											fontSize: '11px',
+											fontWeight: 700,
+											cursor: 'pointer',
+										}}
+									>
+										Remove
+									</button>
 								</div>
-								<div style={{ fontSize: '11.5px', color: 'var(--ink-soft)' }}>
-									Supports any format (JPG, PNG, WEBP, HEIC) • Automatically optimized for instant loading
-								</div>
-							</div>
-						)}
+							))}
 
-						<input
-							ref={fileInputRef}
-							type='file'
-							accept='image/*'
-							style={{ display: 'none' }}
-							onChange={handleFileChange}
-						/>
+							{/* Upload area or Add 2nd photo trigger if under limit */}
+							{packagingPhotos.length === 0 ? (
+								<div
+									className={`custom-att-dropzone ${isDragPackaging ? 'dragging' : ''}`}
+									onClick={() => packagingInputRef.current?.click()}
+									onDragOver={(e: DragEvent<HTMLDivElement>) => {
+										e.preventDefault()
+										setIsDragPackaging(true)
+									}}
+									onDragLeave={() => setIsDragPackaging(false)}
+									onDrop={(e: DragEvent<HTMLDivElement>) => {
+										e.preventDefault()
+										setIsDragPackaging(false)
+										if (e.dataTransfer.files) processFiles(e.dataTransfer.files, 'pkg')
+									}}
+								>
+									<svg
+										width='26'
+										height='26'
+										viewBox='0 0 24 24'
+										fill='none'
+										stroke='var(--lime-deep)'
+										strokeWidth='1.9'
+										strokeLinecap='round'
+										strokeLinejoin='round'
+									>
+										<path d='M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z' />
+										<polyline points='3.27 6.96 12 12.01 20.73 6.96' />
+										<line x1='12' y1='22.08' x2='12' y2='12' />
+									</svg>
+									<div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ink)', marginTop: '4px' }}>
+										{isCompPackaging ? 'Compressing...' : 'Upload Front / Back Photo'}
+									</div>
+									<div style={{ fontSize: '10.5px', color: 'var(--ink-soft)' }}>
+										Click or drag (up to 2 photos)
+									</div>
+								</div>
+							) : packagingPhotos.length === 1 ? (
+								<div
+									className='custom-att-add-more'
+									onClick={() => packagingInputRef.current?.click()}
+								>
+									<span>+ Add 2nd Packaging Photo (1/2 attached)</span>
+								</div>
+							) : (
+								<div
+									style={{
+										fontSize: '11px',
+										color: 'var(--forest)',
+										fontWeight: 700,
+										padding: '4px 8px',
+										background: '#e5f2cf',
+										borderRadius: '6px',
+										textAlign: 'center',
+									}}
+								>
+									✓ 2 of 2 photos attached
+								</div>
+							)}
+
+							<input
+								ref={packagingInputRef}
+								type='file'
+								accept='image/*'
+								multiple
+								style={{ display: 'none' }}
+								onChange={(e: ChangeEvent<HTMLInputElement>) => {
+									if (e.target.files) processFiles(e.target.files, 'pkg')
+								}}
+							/>
+						</div>
+
+						{/* Center Divider Line */}
+						<div className='custom-att-divider' />
+
+						{/* Right Section: Ingredients / Formulation Reference (max 2) */}
+						<div className='custom-att-col'>
+							<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+								<span className='custom-att-badge custom-att-badge-ing'>
+									🧪 Ingredients Reference
+								</span>
+								<span style={{ fontSize: '10px', color: 'var(--ink-soft)' }}>
+									{ingredientsPhotos.length}/2 photos
+								</span>
+							</div>
+							<div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--ink)' }}>
+								Ingredients / Formula Photos
+							</div>
+							<div style={{ fontSize: '11px', color: 'var(--ink-soft)', marginTop: '-4px' }}>
+								Ingredients label or table (optional, max 2)
+							</div>
+
+							{/* Display uploaded ingredients photos */}
+							{ingredientsPhotos.map((p, idx) => (
+								<div
+									key={idx}
+									style={{
+										display: 'flex',
+										alignItems: 'center',
+										gap: '8px',
+										background: '#fff',
+										padding: '6px 10px',
+										borderRadius: '10px',
+										border: '1px solid var(--line)',
+									}}
+								>
+									<div
+										style={{
+											width: '44px',
+											height: '44px',
+											borderRadius: '6px',
+											overflow: 'hidden',
+											flexShrink: 0,
+											background: '#f8fafc',
+											display: 'grid',
+											placeItems: 'center',
+										}}
+									>
+										<img
+											src={p.previewUrl}
+											alt={`Ingredients photo ${idx + 1}`}
+											style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+											onError={(e) => {
+												e.currentTarget.onerror = null
+												e.currentTarget.src = customBeakerSvg
+											}}
+										/>
+									</div>
+									<div style={{ flex: 1, minWidth: 0 }}>
+										<div
+											style={{
+												fontSize: '11.5px',
+												fontWeight: 700,
+												color: 'var(--ink)',
+												whiteSpace: 'nowrap',
+												overflow: 'hidden',
+												textOverflow: 'ellipsis',
+											}}
+										>
+											Photo {idx + 1}: {p.file.name}
+										</div>
+										<div style={{ fontSize: '10px', color: 'var(--ink-soft)' }}>
+											{formatBytes(p.originalSize)} → <b>{formatBytes(p.compressedSize)}</b>
+										</div>
+									</div>
+									<button
+										type='button'
+										onClick={() => removeIngredientsPhoto(idx)}
+										style={{
+											border: 'none',
+											background: '#fee2e2',
+											color: '#b91c1c',
+											borderRadius: '6px',
+											padding: '4px 8px',
+											fontSize: '11px',
+											fontWeight: 700,
+											cursor: 'pointer',
+										}}
+									>
+										Remove
+									</button>
+								</div>
+							))}
+
+							{/* Upload area or Add 2nd photo trigger if under limit */}
+							{ingredientsPhotos.length === 0 ? (
+								<div
+									className={`custom-att-dropzone ${isDragIngredients ? 'dragging' : ''}`}
+									onClick={() => ingredientsInputRef.current?.click()}
+									onDragOver={(e: DragEvent<HTMLDivElement>) => {
+										e.preventDefault()
+										setIsDragIngredients(true)
+									}}
+									onDragLeave={() => setIsDragIngredients(false)}
+									onDrop={(e: DragEvent<HTMLDivElement>) => {
+										e.preventDefault()
+										setIsDragIngredients(false)
+										if (e.dataTransfer.files) processFiles(e.dataTransfer.files, 'ing')
+									}}
+								>
+									<svg
+										width='26'
+										height='26'
+										viewBox='0 0 24 24'
+										fill='none'
+										stroke='#0284c7'
+										strokeWidth='1.9'
+										strokeLinecap='round'
+										strokeLinejoin='round'
+									>
+										<path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' />
+										<polyline points='14 2 14 8 20 8' />
+										<line x1='16' y1='13' x2='8' y2='13' />
+										<line x1='16' y1='17' x2='8' y2='17' />
+										<polyline points='10 9 9 9 8 9' />
+									</svg>
+									<div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ink)', marginTop: '4px' }}>
+										{isCompIngredients ? 'Compressing...' : 'Upload Ingredients Photo'}
+									</div>
+									<div style={{ fontSize: '10.5px', color: 'var(--ink-soft)' }}>
+										Click or drag (up to 2 photos)
+									</div>
+								</div>
+							) : ingredientsPhotos.length === 1 ? (
+								<div
+									className='custom-att-add-more'
+									onClick={() => ingredientsInputRef.current?.click()}
+								>
+									<span>+ Add 2nd Ingredients Photo (1/2 attached)</span>
+								</div>
+							) : (
+								<div
+									style={{
+										fontSize: '11px',
+										color: '#0369a1',
+										fontWeight: 700,
+										padding: '4px 8px',
+										background: '#e0f2fe',
+										borderRadius: '6px',
+										textAlign: 'center',
+									}}
+								>
+									✓ 2 of 2 photos attached
+								</div>
+							)}
+
+							<input
+								ref={ingredientsInputRef}
+								type='file'
+								accept='image/*'
+								multiple
+								style={{ display: 'none' }}
+								onChange={(e: ChangeEvent<HTMLInputElement>) => {
+									if (e.target.files) processFiles(e.target.files, 'ing')
+								}}
+							/>
+						</div>
 					</div>
 
 					{/* Product Name */}
@@ -329,14 +614,20 @@ export default function CustomDemandModal() {
 						/>
 					</div>
 
-					{/* Category */}
+					{/* Category with Other / Innovative Formulation option */}
 					<div>
 						<label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--ink-soft)', marginBottom: '5px' }}>
 							Product Category
 						</label>
 						<select
 							value={category}
-							onChange={(e) => setCategory(e.target.value)}
+							onChange={(e) => {
+								const val = e.target.value
+								setCategory(val)
+								if (val !== 'Other / Innovative Formulation') {
+									setCustomCategoryName('')
+								}
+							}}
 							style={{ width: '100%', cursor: 'pointer' }}
 						>
 							{CATEGORIES.map((cat) => (
@@ -344,8 +635,29 @@ export default function CustomDemandModal() {
 									{cat.name}
 								</option>
 							))}
-							<option value='Speciality / Innovative Formulation'>Other / Innovative Formulation</option>
+							<option value='Other / Innovative Formulation'>Other / Innovative Formulation</option>
 						</select>
+
+						{/* Mandatory custom category input when Other / Innovative Formulation is selected */}
+						{category === 'Other / Innovative Formulation' && (
+							<div style={{ marginTop: '10px' }}>
+								<label style={{ display: 'block', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--lime-deep)', marginBottom: '4px' }}>
+									Specify Category / Innovative Formulation <span style={{ color: 'var(--danger)' }}>*</span>
+								</label>
+								<input
+									type='text'
+									placeholder='e.g., Effervescent Pre-Workout Tabs, Collagen Gummies, Plant Pea Protein...'
+									value={customCategoryName}
+									onChange={(e) => setCustomCategoryName(e.target.value)}
+									required
+									autoFocus
+									style={{ width: '100%', border: '1.5px solid var(--lime-deep)' }}
+								/>
+								<div style={{ fontSize: '11px', color: 'var(--ink-soft)', marginTop: '4px' }}>
+									* Mandatory: Specify the innovative formulation type or category for our lab team.
+								</div>
+							</div>
+						)}
 					</div>
 
 					{/* Desired Flavour & Quick Pills */}
@@ -460,7 +772,7 @@ export default function CustomDemandModal() {
 						type='button'
 						className='btn btn-primary'
 						onClick={handleSubmit}
-						disabled={isSubmitting || isCompressing}
+						disabled={isSubmitting || isCompPackaging || isCompIngredients}
 					>
 						{isSubmitting ? (
 							<span>Adding...</span>
@@ -476,4 +788,3 @@ export default function CustomDemandModal() {
 		</Dialog>
 	)
 }
-

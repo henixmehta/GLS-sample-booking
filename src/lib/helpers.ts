@@ -71,11 +71,18 @@ export interface CustomDemandItem {
 	customId: string
 	name: string
 	category: string
+	customCategory?: string
 	flavour: string
 	pack: string
 	notes: string
 	attachment: string
+	attachments?: string[]
+	ingredientsAttachment?: string
+	ingredientsAttachments?: string[]
 	previewUrl?: string
+	previewUrls?: string[]
+	ingredientsPreviewUrl?: string
+	ingredientsPreviewUrls?: string[]
 	price: number
 	qty: number
 }
@@ -142,7 +149,7 @@ export const itemSub = (i: CartItem) => {
 }
 export const itemImg = (i: CartItem) => {
 	if (isCombo(i)) return IMG.lineup
-	if (isCustom(i)) return i.previewUrl || i.attachment || customBeakerSvg
+	if (isCustom(i)) return i.previewUrl || i.ingredientsPreviewUrl || i.attachment || i.ingredientsAttachment || customBeakerSvg
 	return pimg(byId(i.pid))
 }
 export const itemCount = (i: CartItem) => (isCombo(i) ? 1 : i.qty)

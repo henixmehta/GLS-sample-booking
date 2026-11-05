@@ -119,10 +119,6 @@ function HomeView({ hash }: { hash: string }) {
 						</svg>
 					</span>
 					<b className='cbox-custom-title'>Custom Demand</b>
-					<span className='cbox-custom-price'>
-						<span className='cbox-price-desktop'>₹249 / Custom Sample</span>
-						<span className='cbox-price-mobile'>₹249 / Sample</span>
-					</span>
 				</button>
 			</div>
 			<div className='cat-panel' id='catPanel' role='tabpanel' ref={panel}>

@@ -438,31 +438,32 @@ dialog.custom-modal::backdrop { background: rgba(10, 20, 10, 0.65); backdrop-fil
   position: relative;
   min-width: 144px;
   min-height: 160px;
-  border: 2px dashed #16a34a !important;
-  background: linear-gradient(160deg, #ffffff 0%, #f0fdf4 100%) !important;
-  box-shadow: 0 4px 14px -3px rgba(22, 163, 74, 0.18);
+  border: 2px dashed var(--lime-deep) !important;
+  background: linear-gradient(160deg, #ffffff 0%, var(--surface-2) 100%) !important;
+  box-shadow: 0 4px 14px -3px rgba(94, 154, 31, 0.22);
   transform: scale(1.04);
   cursor: pointer;
   z-index: 1;
   transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  justify-content: center !important;
 }
 .cbox-custom:hover {
   transform: scale(1.06) translateY(-2px) !important;
-  border-color: #15803d !important;
-  box-shadow: 0 8px 24px -4px rgba(22, 163, 74, 0.28) !important;
+  border-color: var(--forest) !important;
+  box-shadow: 0 8px 24px -4px rgba(47, 107, 18, 0.32) !important;
 }
 .cbox-custom-badge {
   position: absolute;
   top: -9px;
   right: -6px;
-  background: linear-gradient(135deg, #16a34a, #15803d);
+  background: linear-gradient(135deg, var(--lime-deep), var(--forest));
   color: #ffffff !important;
   font-size: 9.5px;
   font-weight: 800;
   letter-spacing: 0.05em;
   padding: 2px 8px;
   border-radius: 999px;
-  box-shadow: 0 2px 6px rgba(22,163,74,0.35);
+  box-shadow: 0 2px 6px rgba(47, 107, 18, 0.35);
   text-transform: uppercase;
   white-space: nowrap;
   z-index: 2;
@@ -473,7 +474,7 @@ dialog.custom-modal::backdrop { background: rgba(10, 20, 10, 0.65); backdrop-fil
 .cbox-badge-mobile { display: none; }
 
 .cbox-custom .ci.cbox-custom-ci {
-  background: radial-gradient(circle, #dcfce7 0%, #f0fdf4 75%) !important;
+  background: radial-gradient(circle, #e5f2cf 0%, var(--surface-2) 75%) !important;
   border-radius: 10px;
   width: 100%;
   height: 84px;
@@ -483,17 +484,17 @@ dialog.custom-modal::backdrop { background: rgba(10, 20, 10, 0.65); backdrop-fil
 .cbox-custom-svg {
   width: 42px;
   height: 42px;
-  color: #16a34a;
+  color: var(--lime-deep);
 }
 .cbox-custom-title {
-  color: #15803d !important;
+  color: var(--forest) !important;
   font-size: 14px !important;
   font-weight: 800 !important;
   line-height: 1.2;
 }
 .cbox-custom-price {
   font-size: 11px !important;
-  color: #16a34a !important;
+  color: var(--lime-deep) !important;
   font-weight: 700 !important;
   white-space: nowrap;
 }
@@ -511,11 +512,11 @@ dialog.custom-modal::backdrop { background: rgba(10, 20, 10, 0.65); backdrop-fil
     padding: 8px 6px !important;
     gap: 5px !important;
     border-radius: 12px !important;
-    box-shadow: 0 2px 8px -2px rgba(22, 163, 74, 0.15) !important;
+    box-shadow: 0 2px 8px -2px rgba(94, 154, 31, 0.18) !important;
   }
   .cbox-custom:hover {
     transform: none !important;
-    border-color: #16a34a !important;
+    border-color: var(--lime-deep) !important;
   }
   .cbox-custom-badge {
     top: -7px !important;
@@ -525,7 +526,7 @@ dialog.custom-modal::backdrop { background: rgba(10, 20, 10, 0.65); backdrop-fil
     font-size: 8px !important;
     padding: 1.5px 6px !important;
     letter-spacing: 0.03em !important;
-    box-shadow: 0 1px 4px rgba(22, 163, 74, 0.3) !important;
+    box-shadow: 0 1px 4px rgba(47, 107, 18, 0.35) !important;
   }
   .cbox-badge-desktop { display: none !important; }
   .cbox-badge-mobile { display: inline !important; }
@@ -643,3 +644,108 @@ dialog.custom-modal::backdrop { background: rgba(10, 20, 10, 0.65); backdrop-fil
   .custom-btn-desktop { display: none !important; }
   .custom-btn-mobile { display: inline !important; }
 }
+
+/* Two-section attachment upload layout in Custom Demand Modal */
+.custom-att-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+}
+.custom-att-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.custom-att-divider {
+  width: 1px;
+  background: var(--line);
+  align-self: stretch;
+}
+.custom-att-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2.5px 8px;
+  border-radius: 6px;
+  width: fit-content;
+}
+.custom-att-badge-pkg {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+.custom-att-badge-ing {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+.custom-att-dropzone {
+  flex: 1;
+  border: 1.5px dashed var(--line);
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 120px;
+}
+.custom-att-dropzone:hover {
+  border-color: var(--lime-deep);
+  background: #fdfdfd;
+}
+.custom-att-dropzone.dragging {
+  border-color: var(--lime-deep);
+  background: #f0fdf4;
+}
+
+.custom-att-add-more {
+  border: 1.5px dashed var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--lime-deep);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.custom-att-add-more:hover {
+  border-color: var(--lime-deep);
+  background: var(--surface-2);
+}
+
+@media (max-width: 640px) {
+  .custom-att-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 10px;
+  }
+  .custom-att-divider {
+    width: 100%;
+    height: 1px;
+  }
+  .custom-att-dropzone {
+    min-height: 100px;
+    padding: 10px 8px;
+  }
+}
+
