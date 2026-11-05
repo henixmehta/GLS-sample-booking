@@ -1,5 +1,5 @@
 import { FREE_SHIP_MIN, MAX_PER_ITEM } from '../data/catalog'
-import { byId, grandTotalOf, inr, isCombo, itemCount, itemImg, itemName, itemPrice, itemSub, onImgError, pimg, relatedTo, shipNudge, shippingOf, subtotalOf } from '../lib/helpers'
+import { byId, customBeakerSvg, grandTotalOf, inr, isCombo, isCustom, itemCount, itemImg, itemName, itemPrice, itemSub, onImgError, pimg, relatedTo, shipNudge, shippingOf, subtotalOf } from '../lib/helpers'
 import Dialog, { CloseX } from './Dialog'
 import { useShop } from './ShopContext'
 
@@ -74,6 +74,69 @@ export default function CartDrawer() {
 									</div>
 								</div>
 							)
+						if (isCustom(i)) {
+							const customThumb = i.previewUrl || i.attachment
+							return (
+								<div className='ci-row' key={`custom-${i.customId || idx}`}>
+									{customThumb ? (
+										<div className='ci-img' style={{ width: '64px', height: '64px', borderRadius: '12px', overflow: 'hidden', flexShrink: 0, background: '#f0fdf4', display: 'grid', placeItems: 'center', border: '1px solid #bbf7d0' }}>
+											<img
+												src={customThumb}
+												alt={i.name}
+												style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+												onError={(e) => {
+													e.currentTarget.onerror = null
+													e.currentTarget.src = customBeakerSvg
+												}}
+											/>
+										</div>
+									) : (
+										<div className='ci-img' style={{ width: '64px', height: '64px', borderRadius: '12px', background: 'radial-gradient(circle, #dcfce7 0%, #f0fdf4 75%)', border: '1px solid #bbf7d0', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+											<svg width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='#16a34a' strokeWidth='1.9' strokeLinecap='round' strokeLinejoin='round'>
+												<path d='M10 2v7.5' />
+												<path d='M14 2v7.5' />
+												<path d='M8.5 2h7' />
+												<path d='M14 9.5a6.5 6.5 0 1 1-4 0v-7.5' />
+												<circle cx='12' cy='15' r='1' fill='#16a34a' />
+												<circle cx='10' cy='18' r='1' fill='#16a34a' />
+												<circle cx='14' cy='18' r='1' fill='#16a34a' />
+											</svg>
+										</div>
+									)}
+									<div className='ci-main'>
+										<div className='ci-top'>
+											<div>
+												<div style={{ display: 'inline-block', fontSize: '10px', fontWeight: 700, background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: '4px', marginBottom: '2px' }}>
+													Custom Demand
+												</div>
+												<h4>{i.name}</h4>
+												<div className='ci-sub'>{itemSub(i)}</div>
+											</div>
+											<button className='ci-rm' type='button' aria-label={`Remove ${i.name}`} onClick={() => removeAt(idx)}>
+												×
+											</button>
+										</div>
+										{i.notes && (
+											<div style={{ fontSize: '11px', color: '#6b7280', fontStyle: 'italic', margin: '4px 0', lineHeight: 1.3 }}>
+												“{i.notes.length > 70 ? i.notes.slice(0, 70) + '…' : i.notes}”
+											</div>
+										)}
+										<div className='ci-bottom'>
+											<div className='qty qty-sm'>
+												<button type='button' aria-label='One less' disabled={i.qty <= 1} onClick={() => updateAt(idx, { qty: i.qty - 1 })}>
+													−
+												</button>
+												<span>{i.qty}</span>
+												<button type='button' aria-label='One more' disabled={i.qty >= MAX_PER_ITEM} onClick={() => updateAt(idx, { qty: i.qty + 1 })}>
+													+
+												</button>
+											</div>
+											<b className='ci-amt'>{inr(itemPrice(i))}</b>
+										</div>
+									</div>
+								</div>
+							)
+						}
 						const p = byId(i.pid)
 						const key = `${i.pid}|${i.variant}|${i.flavour}`
 						return (

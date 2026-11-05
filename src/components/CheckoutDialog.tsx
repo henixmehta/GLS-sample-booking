@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { STATES } from '../data/catalog'
 import { createSampleOrder, invoiceUrl, invoiceUrlByOrderId, loadRazorpay, sendOtp, verifySamplePayment, type ConfirmedOrder, type CreatedOrder, type Customer } from '../lib/api'
-import { grandTotalOf, inr, itemImg, itemName, itemPrice, itemSub, shipNudge, shippingOf, subtotalOf, validEmail, validMobile, validPin, type CartItem } from '../lib/helpers'
+import { customBeakerSvg, grandTotalOf, inr, isCustom, itemImg, itemName, itemPrice, itemSub, shipNudge, shippingOf, subtotalOf, validEmail, validMobile, validPin, type CartItem } from '../lib/helpers'
 import { IMG } from '../lib/images'
 import Dialog, { CloseX, Tick } from './Dialog'
 import { goHome } from './Layout'
@@ -19,21 +19,62 @@ const EMPTY: Customer = { name: '', company: '', mobile: '', email: '', addr1: '
 function LineItems({ box, onRemove }: { box: CartItem[]; onRemove?: (idx: number) => void }) {
 	return (
 		<>
-			{box.map((i, idx) => (
-				<div className='line-item' key={idx}>
-					<img src={itemImg(i)} alt='' />
-					<div className='meta'>
-						<h4>{itemName(i)}</h4>
-						<div className='sub'>{itemSub(i)}</div>
-						{onRemove && (
-							<button className='rm' type='button' onClick={() => onRemove(idx)}>
-								Remove
-							</button>
+			{box.map((i, idx) => {
+				const isC = isCustom(i)
+				const thumb = isC ? (i.previewUrl || i.attachment || customBeakerSvg) : itemImg(i)
+				return (
+					<div className='line-item' key={idx}>
+						{isC && !i.previewUrl && !i.attachment ? (
+							<div
+								style={{
+									width: '56px',
+									height: '56px',
+									borderRadius: '10px',
+									background: 'radial-gradient(circle, #dcfce7 0%, #f0fdf4 75%)',
+									border: '1px solid #bbf7d0',
+									display: 'grid',
+									placeItems: 'center',
+									flexShrink: 0,
+								}}
+							>
+								<svg width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='#16a34a' strokeWidth='1.9' strokeLinecap='round' strokeLinejoin='round'>
+									<path d='M10 2v7.5' />
+									<path d='M14 2v7.5' />
+									<path d='M8.5 2h7' />
+									<path d='M14 9.5a6.5 6.5 0 1 1-4 0v-7.5' />
+									<circle cx='12' cy='15' r='1' fill='#16a34a' />
+									<circle cx='10' cy='18' r='1' fill='#16a34a' />
+									<circle cx='14' cy='18' r='1' fill='#16a34a' />
+								</svg>
+							</div>
+						) : (
+							<img
+								src={thumb}
+								alt=''
+								onError={(e) => {
+									e.currentTarget.onerror = null
+									e.currentTarget.src = customBeakerSvg
+								}}
+							/>
 						)}
+						<div className='meta'>
+							{isC && (
+								<div style={{ display: 'inline-block', fontSize: '9.5px', fontWeight: 700, background: '#e0f2fe', color: '#0369a1', padding: '1px 5px', borderRadius: '4px', marginBottom: '2px' }}>
+									Custom Demand
+								</div>
+							)}
+							<h4>{itemName(i)}</h4>
+							<div className='sub'>{itemSub(i)}</div>
+							{onRemove && (
+								<button className='rm' type='button' onClick={() => onRemove(idx)}>
+									Remove
+								</button>
+							)}
+						</div>
+						<div className='amt'>{inr(itemPrice(i))}</div>
 					</div>
-					<div className='amt'>{inr(itemPrice(i))}</div>
-				</div>
-			))}
+				)
+			})}
 		</>
 	)
 }
@@ -159,7 +200,7 @@ export default function CheckoutDialog() {
 				name: 'Gomzi Life Science LLP',
 				description: `Sample order ${order.order_id}`,
 				image: new URL(IMG.logo, location.href).href,
-				prefill: { name: cust.name, email: cust.email, contact: '+91' + cust.mobile, method: PAY_METHODS.find((m) => m.value === method)?.rzp },
+				prefill: { name: cust.name, email: cust.email, contact: '+91' + cust.mobile },
 				theme: { color: '#5E9A1F' },
 				handler: async (r: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
 					showRazorpay(false)

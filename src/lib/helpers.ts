@@ -66,7 +66,26 @@ export const onImgError = (p?: Product) => (e: React.SyntheticEvent<HTMLImageEle
 /* ============== cart ============== */
 export interface Selection { pid: string; flavour: string; variant: string | null; qty: number }
 export interface KitPart { pid: string; flavour: string; variant: string | null; extra: number; qty?: number }
-export type CartItem = (Selection & { kind?: undefined }) | { kind: 'combo'; qty: 1; parts: KitPart[] }
+export interface CustomDemandItem {
+	kind: 'custom'
+	customId: string
+	name: string
+	category: string
+	flavour: string
+	pack: string
+	notes: string
+	attachment: string
+	previewUrl?: string
+	price: number
+	qty: number
+}
+
+export const customBeakerSvg =
+	'data:image/svg+xml;charset=utf-8,' +
+	encodeURIComponent(
+		'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="14" fill="#dcfce7"/><g transform="translate(20, 18)"><path d="M10 2v7.5" stroke="#16a34a" stroke-width="2.4" stroke-linecap="round"/><path d="M14 2v7.5" stroke="#16a34a" stroke-width="2.4" stroke-linecap="round"/><path d="M7.5 2h9" stroke="#16a34a" stroke-width="2.4" stroke-linecap="round"/><path d="M14 9.5a7 7 0 1 1-4 0v-7.5" stroke="#16a34a" stroke-width="2.4" fill="none" stroke-linejoin="round"/><circle cx="12" cy="17" r="1.5" fill="#16a34a"/><circle cx="9.5" cy="21" r="1.5" fill="#16a34a"/><circle cx="14.5" cy="21" r="1.5" fill="#16a34a"/></g></svg>'
+	)
+export type CartItem = (Selection & { kind?: undefined }) | { kind: 'combo'; qty: 1; parts: KitPart[] } | CustomDemandItem
 
 /* Tiered combo pricing:
    1 product: ₹249
@@ -91,29 +110,52 @@ export const comboItemCount = (parts: KitPart[]) =>
 export const comboPrice = (parts: KitPart[]) => comboTierPrice(comboItemCount(parts))
 export const comboExtras = (parts: KitPart[]) => Math.max(0, comboPrice(parts) - COMBO.price)
 export const isCombo = (i: CartItem): i is Extract<CartItem, { kind: 'combo' }> => i.kind === 'combo'
+export const isCustom = (i: CartItem): i is CustomDemandItem => i.kind === 'custom'
 export const optsTxt = (x: { variant: string | null; flavour: string }) => [x.variant, x.flavour].filter(Boolean).join(', ')
-export const itemPrice = (i: CartItem) => (isCombo(i) ? comboPrice(i.parts) : byId(i.pid).price * i.qty)
-export const itemName = (i: CartItem) => {
-	if (!isCombo(i)) return byId(i.pid).name
-	const n = comboItemCount(i.parts)
-	return n === 5 ? 'Full Combo Sample Kit (5 samples)' : `Combo Sample Kit (${n} sample${n > 1 ? 's' : ''})`
+export const itemPrice = (i: CartItem) => {
+	if (isCombo(i)) return comboPrice(i.parts)
+	if (isCustom(i)) return (i.price || 249) * i.qty
+	return byId(i.pid).price * i.qty
 }
-export const itemSub = (i: CartItem) =>
-	isCombo(i)
-		? i.parts
+export const itemName = (i: CartItem) => {
+	if (isCombo(i)) {
+		const n = comboItemCount(i.parts)
+		return n === 5 ? 'Full Combo Sample Kit (5 samples)' : `Combo Sample Kit (${n} sample${n > 1 ? 's' : ''})`
+	}
+	if (isCustom(i)) {
+		return i.name || 'Custom Demanded Product'
+	}
+	return byId(i.pid).name
+}
+export const itemSub = (i: CartItem) => {
+	if (isCombo(i)) {
+		return i.parts
 				.filter((x) => (x.qty !== undefined ? x.qty > 0 : true))
 				.map((x) => `${byId(x.pid).name} (${optsTxt(x)}) ×${x.qty !== undefined ? x.qty : 1 + (x.extra || 0)}`)
 				.join('; ')
-		: `${[optsTxt(i), byId(i.pid).pack].filter(Boolean).join(', ')} ×${i.qty}`
-export const itemImg = (i: CartItem) => (isCombo(i) ? IMG.lineup : pimg(byId(i.pid)))
+	}
+	if (isCustom(i)) {
+		const parts = [i.category, i.flavour, i.pack].filter(Boolean)
+		return `${parts.join(', ') || 'Custom formulation'} ×${i.qty}`
+	}
+	return `${[optsTxt(i), byId(i.pid).pack].filter(Boolean).join(', ')} ×${i.qty}`
+}
+export const itemImg = (i: CartItem) => {
+	if (isCombo(i)) return IMG.lineup
+	if (isCustom(i)) return i.previewUrl || i.attachment || customBeakerSvg
+	return pimg(byId(i.pid))
+}
 export const itemCount = (i: CartItem) => (isCombo(i) ? 1 : i.qty)
-export const isValidItem = (i: CartItem) =>
-	isCombo(i) ? i.parts.filter((x) => (x.qty !== undefined ? x.qty > 0 : true)).every((x) => byId(x.pid)) : !!byId(i.pid)
+export const isValidItem = (i: CartItem) => {
+	if (isCombo(i)) return i.parts.filter((x) => (x.qty !== undefined ? x.qty > 0 : true)).every((x) => byId(x.pid))
+	if (isCustom(i)) return !!i.name && typeof i.qty === 'number' && i.qty > 0
+	return !!byId(i.pid)
+}
 
 export function mergeSel(box: CartItem[], sel: Selection): CartItem[] {
-	const ex = box.findIndex((i) => !isCombo(i) && i.pid === sel.pid && i.flavour === sel.flavour && i.variant === sel.variant)
+	const ex = box.findIndex((i) => !isCombo(i) && !isCustom(i) && i.pid === sel.pid && i.flavour === sel.flavour && i.variant === sel.variant)
 	if (ex < 0) return [...box, { ...sel }]
-	return box.map((i, k) => (k === ex && !isCombo(i) ? { ...i, qty: Math.min(MAX_PER_ITEM, i.qty + sel.qty) } : i))
+	return box.map((i, k) => (k === ex && !isCombo(i) && !isCustom(i) ? { ...i, qty: Math.min(MAX_PER_ITEM, i.qty + sel.qty) } : i))
 }
 
 /* First flavour / option, one pack: what the product card's "Add to cart" puts in the cart */
@@ -123,18 +165,22 @@ export const defaultSel = (pid: string): Selection => {
 }
 
 /* Change flavour, option or packs of a cart line. If it now matches another line, the two are merged. */
-export function updateItem(box: CartItem[], idx: number, patch: Partial<Selection>): CartItem[] {
+export function updateItem(box: CartItem[], idx: number, patch: Partial<Selection> & { qty?: number }): CartItem[] {
 	const item = box[idx]
 	if (!item || isCombo(item)) return box
+	if (isCustom(item)) {
+		const next = { ...item, qty: Math.min(MAX_PER_ITEM, Math.max(1, patch.qty ?? item.qty)) }
+		return box.map((x, k) => (k === idx ? next : x))
+	}
 	const next = { ...item, ...patch, qty: Math.min(MAX_PER_ITEM, Math.max(1, patch.qty ?? item.qty)) }
-	const dup = box.findIndex((i, k) => k !== idx && !isCombo(i) && i.pid === next.pid && i.flavour === next.flavour && i.variant === next.variant)
+	const dup = box.findIndex((i, k) => k !== idx && !isCombo(i) && !isCustom(i) && i.pid === next.pid && i.flavour === next.flavour && i.variant === next.variant)
 	if (dup < 0) return box.map((x, k) => (k === idx ? next : x))
-	return box.flatMap((x, k) => (k === idx ? [] : k === dup && !isCombo(x) ? [{ ...x, qty: Math.min(MAX_PER_ITEM, x.qty + next.qty) }] : [x]))
+	return box.flatMap((x, k) => (k === idx ? [] : k === dup && !isCombo(x) && !isCustom(x) ? [{ ...x, qty: Math.min(MAX_PER_ITEM, x.qty + next.qty) }] : [x]))
 }
 
 /* "You may also like": products from the same categories as the cart first, then other photographed products */
 export function relatedTo(box: CartItem[], limit = 6): Product[] {
-	const inCart = new Set(box.flatMap((i) => (isCombo(i) ? i.parts.map((x) => x.pid) : [i.pid])))
+	const inCart = new Set(box.flatMap((i) => (isCombo(i) ? i.parts.map((x) => x.pid) : isCustom(i) ? [] : [i.pid])))
 	const cats = new Set([...inCart].map((id) => byId(id).cat))
 	const same = PRODUCTS.filter((p) => cats.has(p.cat) && !inCart.has(p.id))
 	const others = PRODUCTS.filter((p) => !cats.has(p.cat) && !inCart.has(p.id) && p.img)

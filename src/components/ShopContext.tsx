@@ -1,15 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { defaultSel, isValidItem, mergeSel, updateItem, type CartItem, type Selection } from '../lib/helpers'
+import { defaultSel, isValidItem, mergeSel, updateItem, type CartItem, type CustomDemandItem, type Selection } from '../lib/helpers'
 
 interface Shop {
 	box: CartItem[]
 	addSel: (sel: Selection) => void
 	quickAdd: (pid: string) => void
-	updateAt: (idx: number, patch: Partial<Selection>) => void
+	updateAt: (idx: number, patch: Partial<Selection> & { qty?: number }) => void
 	drawerOpen: boolean
 	openDrawer: () => void
 	closeDrawer: () => void
 	addCombo: (item: CartItem) => void
+	addCustom: (item: CustomDemandItem) => void
 	removeAt: (idx: number) => void
 	clearBox: () => void
 	toast: (msg: string) => void
@@ -20,6 +21,8 @@ interface Shop {
 	closeProduct: () => void
 	comboOpen: boolean
 	setComboOpen: (v: boolean) => void
+	customModalOpen: boolean
+	setCustomModalOpen: (v: boolean) => void
 	checkout: { open: boolean; step: number; nonce: number }
 	openCheckout: (step: number) => void
 	closeCheckout: () => void
@@ -45,6 +48,7 @@ export function ShopProvider({ children }: { children: ReactNode }) {
 	const toastTimer = useRef<number>()
 	const [productId, setProductId] = useState<string | null>(null)
 	const [comboOpen, setComboOpen] = useState(false)
+	const [customModalOpen, setCustomModalOpen] = useState(false)
 	const [checkout, setCheckout] = useState({ open: false, step: 0, nonce: 0 })
 	const [termsOpen, setTermsOpen] = useState(false)
 	const [drawerOpen, setDrawerOpen] = useState(false)
@@ -79,6 +83,10 @@ export function ShopProvider({ children }: { children: ReactNode }) {
 			openDrawer: () => setDrawerOpen(true),
 			closeDrawer: () => setDrawerOpen(false),
 			addCombo: (item) => setBox((b) => [...b, item]),
+			addCustom: (item) => {
+				setBox((b) => [...b, item])
+				setDrawerOpen(true)
+			},
 			removeAt: (idx) => setBox((b) => b.filter((_, k) => k !== idx)),
 			clearBox: () => setBox([]),
 			toast,
@@ -89,13 +97,15 @@ export function ShopProvider({ children }: { children: ReactNode }) {
 			closeProduct: () => setProductId(null),
 			comboOpen,
 			setComboOpen,
+			customModalOpen,
+			setCustomModalOpen,
 			checkout,
 			openCheckout: (step) => setCheckout((c) => ({ open: true, step, nonce: c.nonce + 1 })),
 			closeCheckout: () => setCheckout((c) => ({ ...c, open: false })),
 			termsOpen,
 			setTermsOpen,
 		}),
-		[box, addSel, drawerOpen, toast, toastMsg, toastShown, productId, comboOpen, checkout, termsOpen]
+		[box, addSel, drawerOpen, toast, toastMsg, toastShown, productId, comboOpen, customModalOpen, checkout, termsOpen]
 	)
 	return <ShopCtx.Provider value={value}>{children}</ShopCtx.Provider>
 }

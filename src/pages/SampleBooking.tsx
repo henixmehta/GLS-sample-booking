@@ -6,6 +6,7 @@ import Dialog, { CloseX, Tick } from '../components/Dialog'
 import { Footer, goHome, Header } from '../components/Layout'
 import OtpPanel, { type OtpSession } from '../components/OtpPanel'
 import ProductDialog from '../components/ProductDialog'
+import CustomDemandModal from '../components/CustomDemandModal'
 import { Toast, useShop } from '../components/ShopContext'
 import TermsDialog from '../components/TermsDialog'
 import { CATEGORIES, PRODUCTS } from '../data/catalog'
@@ -38,7 +39,7 @@ function useHash() {
 
 /* ============== categories ============== */
 function HomeView({ hash }: { hash: string }) {
-	const { openProduct, quickAdd } = useShop()
+	const { openProduct, quickAdd, setCustomModalOpen } = useShop()
 	const [activeCat, setActiveCat] = useState(() => (catById(hash) ? hash : CATEGORIES[0].id))
 	const panel = useRef<HTMLDivElement>(null)
 	useEffect(() => {
@@ -84,6 +85,45 @@ function HomeView({ hash }: { hash: string }) {
 						</button>
 					)
 				})}
+
+				{/* Custom Demanded Product Card - positioned beside Protein Snacks */}
+				<button
+					className='cbox cbox-custom'
+					type='button'
+					role='tab'
+					aria-selected={false}
+					onClick={() => setCustomModalOpen(true)}
+					title='Demand a customised product formulation sample'
+				>
+					<span className='cbox-custom-badge'>
+						<span className='cbox-badge-desktop'>Custom Formulation</span>
+						<span className='cbox-badge-mobile'>Custom</span>
+					</span>
+					<span className='ci cbox-custom-ci'>
+						<svg
+							className='cbox-custom-svg'
+							viewBox='0 0 24 24'
+							fill='none'
+							stroke='currentColor'
+							strokeWidth='1.9'
+							strokeLinecap='round'
+							strokeLinejoin='round'
+						>
+							<path d='M10 2v7.5' />
+							<path d='M14 2v7.5' />
+							<path d='M8.5 2h7' />
+							<path d='M14 9.5a6.5 6.5 0 1 1-4 0v-7.5' />
+							<circle cx='12' cy='15' r='1' fill='currentColor' />
+							<circle cx='10' cy='18' r='1' fill='currentColor' />
+							<circle cx='14' cy='18' r='1' fill='currentColor' />
+						</svg>
+					</span>
+					<b className='cbox-custom-title'>Custom Demand</b>
+					<span className='cbox-custom-price'>
+						<span className='cbox-price-desktop'>₹249 / Custom Sample</span>
+						<span className='cbox-price-mobile'>₹249 / Sample</span>
+					</span>
+				</button>
 			</div>
 			<div className='cat-panel' id='catPanel' role='tabpanel' ref={panel}>
 				<h2>{c.name}</h2>
@@ -699,6 +739,7 @@ export default function SampleBooking() {
 			<Footer />
 			<ProductDialog />
 			<ComboDialog />
+			<CustomDemandModal />
 			<CartDrawer />
 			<CheckoutDialog />
 			<TermsDialog />

@@ -3,8 +3,16 @@
 import type { CartItem } from './helpers'
 import { withVisitorTracking } from '../crm/fg-crm-tracking'
 
-const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname)
-export const API_BASE = (import.meta.env.VITE_API_BASE_URL || (isLocal ? 'http://localhost' : 'https://api.fggroup.in')).replace(/\/+$/, '')
+const isLocal =
+	['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(location.hostname) ||
+	location.hostname.startsWith('192.168.') ||
+	location.hostname.startsWith('10.') ||
+	location.hostname.startsWith('172.') ||
+	location.hostname.endsWith('.local')
+
+export const API_BASE = (
+	import.meta.env.VITE_API_BASE_URL || (isLocal ? `http://${location.hostname}` : 'https://api.fggroup.in')
+).replace(/\/+$/, '')
 const PUBLIC = `${API_BASE}/public/v1`
 
 /* Source tag, so contact inquiries are routed to the GLS team (fg-api contact-us.js). */
@@ -82,10 +90,42 @@ export async function lookupInvoice(orderIdOrMobile: string): Promise<InvoiceInf
 	return json?.data
 }
 
-const toPayloadItem = (i: CartItem) =>
-	i.kind === 'combo'
-		? { kind: 'combo', parts: i.parts.map(({ pid, flavour, variant, extra }) => ({ pid, flavour, variant, extra })) }
-		: { kind: 'single', pid: i.pid, flavour: i.flavour, variant: i.variant, qty: i.qty }
+const toPayloadItem = (i: CartItem) => {
+	if (i.kind === 'combo') {
+		return { kind: 'combo', parts: i.parts.map(({ pid, flavour, variant, extra }) => ({ pid, flavour, variant, extra })) }
+	}
+	if (i.kind === 'custom') {
+		return {
+			kind: 'custom',
+			name: i.name,
+			category: i.category,
+			flavour: i.flavour,
+			pack: i.pack,
+			notes: i.notes,
+			attachment: i.attachment,
+			qty: i.qty,
+		}
+	}
+	return { kind: 'single', pid: i.pid, flavour: i.flavour, variant: i.variant, qty: i.qty }
+}
+
+export async function uploadCustomAttachment(file: Blob | File, filename = 'sample-custom.jpg'): Promise<string> {
+	const fd = new FormData()
+	fd.append('files', file, filename)
+	let res: Response
+	try {
+		res = await fetch(`${PUBLIC}/file-upload`, { method: 'POST', body: fd })
+	} catch {
+		throw new Error('Failed to upload image. Please check your internet connection.')
+	}
+	const json = await res.json().catch(() => ({}))
+	if (!res.ok) throw new Error(json?.message || 'File upload failed')
+	const fileLocations = json?.data?.fileLocations
+	if (fileLocations && fileLocations.length > 0) return fileLocations[0]
+	const fileURLs = json?.data?.fileURLs
+	if (fileURLs && fileURLs.length > 0) return fileURLs[0]
+	return ''
+}
 
 export const createSampleOrder = (verification_id: string, c: Customer, box: CartItem[], method: string) =>
 	post<CreatedOrder>('/gls-sample-booking/create-order', {
