@@ -30,14 +30,15 @@ async function post<T = any>(path: string, body: unknown): Promise<T> {
 	return json?.data as T
 }
 
-/* OTP is sent on WhatsApp first, with SMS and e-mail fallbacks on the server. `email` is optional but
-   lets the server fall back to e-mail when WhatsApp and SMS are both unavailable. In development the
-   API also returns the code. */
+/* OTP is sent to the customer's email via Resend API (Gomzi Lifesciences).
+   In development the API also returns the code for convenience. */
 export const sendOtp = (mobile: string, email?: string) =>
 	post<{ verification_id: string; otp?: string; channel?: string }>('/inquiry-otp/send', {
 		mobile,
 		country_code: '+91',
 		...(email ? { email } : {}),
+		channel: 'email',
+		purpose: 'gls-sample-booking',
 	})
 export const verifyOtp = (verification_id: string, otp: string) => post('/inquiry-otp/verify', { verification_id, otp })
 

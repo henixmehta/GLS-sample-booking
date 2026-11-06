@@ -8,7 +8,7 @@ import { goHome } from './Layout'
 import OtpPanel, { type OtpSession } from './OtpPanel'
 import { useShop } from './ShopContext'
 
-const TITLES = ['Your cart', 'Delivery details', 'Verify your mobile', 'Payment', 'Order placed']
+const TITLES = ['Your cart', 'Delivery details', 'Verify your email', 'Payment', 'Order placed']
 const PAY_METHODS = [
 	{ value: 'UPI', label: 'UPI', small: 'GPay, PhonePe, Paytm or any UPI app', rzp: 'upi' },
 	{ value: 'Card', label: 'Debit or credit card', small: 'Visa, Mastercard, RuPay', rzp: 'card' },
@@ -275,14 +275,14 @@ export default function CheckoutDialog() {
 						<input autoComplete='organization' {...field('company')} />
 					</label>
 					<label className='f'>
-						Mobile <span className='opt'>(we’ll send an OTP)</span>
+						Mobile <span className='opt'>(for dispatch tracking)</span>
 						<div className='mobile-in'>
 							<span>+91</span>
 							<input inputMode='numeric' maxLength={10} autoComplete='tel-national' required {...field('mobile')} />
 						</div>
 					</label>
 					<label className='f'>
-						Email <span className='opt'>(for your confirmation)</span>
+						Email <span className='opt'>(we’ll send an OTP)</span>
 						<input type='email' autoComplete='email' required {...field('email')} />
 					</label>
 					<label className='f full'>
@@ -477,12 +477,13 @@ export default function CheckoutDialog() {
 			{step === 2 && otp ? (
 				<OtpPanel
 					mobile={cust.mobile}
+					email={cust.email}
 					session={otp}
 					onBack={() => go(1)}
 					onOk={() => go(3)}
 					onResend={async () => {
 						setOtp(await sendOtp(cust.mobile, cust.email))
-						toast('New code sent')
+						toast(`New code sent to ${cust.email}`)
 					}}>
 					{content}
 				</OtpPanel>

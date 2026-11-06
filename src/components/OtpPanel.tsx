@@ -7,6 +7,7 @@ export interface OtpSession { verification_id: string; otp?: string }
    `devOtp` is only returned by the API in development and fills the "Preview mode" box. */
 export default function OtpPanel({
 	mobile,
+	email,
 	session,
 	onBack,
 	onOk,
@@ -14,6 +15,7 @@ export default function OtpPanel({
 	children,
 }: {
 	mobile: string
+	email?: string
 	session: OtpSession
 	onBack: () => void
 	onOk: () => Promise<void> | void
@@ -82,7 +84,7 @@ export default function OtpPanel({
 			<p style={{ textAlign: 'center' }}>
 				Enter the 6-digit code sent to{' '}
 				<b>
-					+91 {mobile.slice(0, 5)} {mobile.slice(5)}
+					{email || `+91 ${mobile.slice(0, 5)} ${mobile.slice(5)}`}
 				</b>
 			</p>
 			<div className='otp-boxes' role='group' aria-label='One-time password'>
@@ -107,7 +109,7 @@ export default function OtpPanel({
 			</div>
 			{session.otp && (
 				<div className='demo'>
-					Preview mode: your OTP is <b>{session.otp}</b>. On the live site the code goes to your phone or e-mail and this box disappears.
+					Preview mode: your OTP is <b>{session.otp}</b>. On the live site the code goes to your email and this box disappears.
 				</div>
 			)}
 			<p className='err' role='alert' style={{ textAlign: 'center', marginTop: 10 }}>
@@ -139,7 +141,7 @@ export default function OtpPanel({
 						e.preventDefault()
 						onBack()
 					}}>
-					Change number
+					Change details
 				</a>
 			</p>
 		</>
